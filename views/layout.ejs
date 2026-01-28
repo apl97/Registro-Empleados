@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Employee Tracker' %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <% if (typeof loggedIn !== 'undefined' && loggedIn) { %>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/employees">Employees</a>
+      <a href="/records">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+  <% } %>
+
+  <main class="container">
+    <%- body %>
+  </main>
+</body>
+</html>

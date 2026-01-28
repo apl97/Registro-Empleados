@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Recorded</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="container">
+    <div class="tracking-result success">
+      <div class="icon">&#10003;</div>
+      <h1>Attendance Recorded!</h1>
+      <p class="employee-name"><%= employee %></p>
+      <p class="date">has been recorded as working on</p>
+      <p class="date-value"><%= new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/employees" class="active">Employees</a>
+      <a href="/records">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Employees</h1>
+      <a href="/employees/new" class="btn btn-primary">Add Employee</a>
+    </div>
+
+    <% if (employees.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% employees.forEach(emp => { %>
+            <tr class="<%= !emp.active ? 'inactive-row' : '' %>">
+              <td><%= emp.first_name %> <%= emp.last_name %></td>
+              <td>
+                <span class="badge <%= emp.active ? 'badge-active' : 'badge-inactive' %>">
+                  <%= emp.active ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td>
+                <a href="/employees/<%= emp.id %>/edit" class="btn btn-small btn-secondary">Edit</a>
+                <% if (emp.active) { %>
+                  <form method="POST" action="/employees/<%= emp.id %>/deactivate" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Deactivate this employee?')">Deactivate</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <div class="empty-state">
+        <p>No employees yet.</p>
+        <a href="/employees/new" class="btn btn-primary">Add your first employee</a>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>

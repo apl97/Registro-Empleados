@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Already Recorded</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="container">
+    <div class="tracking-result warning">
+      <div class="icon">!</div>
+      <h1>Already Recorded</h1>
+      <p>Attendance for <strong><%= new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></strong> was already recorded.</p>
+      <p class="recorded-by">Recorded: <strong><%= usedBy %></strong></p>
+    </div>
+  </main>
+</body>
+</html>

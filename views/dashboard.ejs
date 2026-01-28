@@ -1,0 +1,146 @@
+<%- include('layout', { body: content, loggedIn: true, title: 'Dashboard' }) %>
+<%
+const content = `
+  <h1>Dashboard</h1>
+
+  <div class="dashboard-grid">
+    <div class="card">
+      <h3>Active Employees</h3>
+      <p class="stat-number">${stats.activeEmployees}</p>
+      <a href="/employees" class="btn btn-secondary">Manage Employees</a>
+    </div>
+
+    <div class="card">
+      <h3>Work Records This Month</h3>
+      <p class="stat-number">${stats.recordsThisMonth}</p>
+      <a href="/records" class="btn btn-secondary">View Records</a>
+    </div>
+
+    <div class="card">
+      <h3>Email Recipients</h3>
+      <p class="stat-number">${stats.activeRecipients}</p>
+      <a href="/recipients" class="btn btn-secondary">Manage Recipients</a>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 30px;">
+    <h3>Send Test Email</h3>
+    <p>Send today's attendance email manually (for testing purposes).</p>
+    <form method="POST" action="/send-test-email" style="display: inline;">
+      <button type="submit" class="btn btn-primary">Send Test Email</button>
+    </form>
+  </div>
+
+  ${typeof emailResult !== 'undefined' && emailResult ? `
+    <div class="alert ${emailResult.success ? 'alert-success' : 'alert-error'}" style="margin-top: 20px;">
+      ${emailResult.message}
+    </div>
+  ` : ''}
+
+  <div class="card" style="margin-top: 30px;">
+    <h3>Recent Work Records</h3>
+    ${recentRecords.length > 0 ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${recentRecords.map(r => `
+            <tr>
+              <td>${r.first_name} ${r.last_name}</td>
+              <td>${new Date(r.work_date).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<p>No recent records.</p>'}
+  </div>
+`;
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard" class="active">Dashboard</a>
+      <a href="/employees">Employees</a>
+      <a href="/records">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <h1>Dashboard</h1>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Active Employees</h3>
+        <p class="stat-number"><%= stats.activeEmployees %></p>
+        <a href="/employees" class="btn btn-secondary">Manage Employees</a>
+      </div>
+
+      <div class="card">
+        <h3>Work Records This Month</h3>
+        <p class="stat-number"><%= stats.recordsThisMonth %></p>
+        <a href="/records" class="btn btn-secondary">View Records</a>
+      </div>
+
+      <div class="card">
+        <h3>Email Recipients</h3>
+        <p class="stat-number"><%= stats.activeRecipients %></p>
+        <a href="/recipients" class="btn btn-secondary">Manage Recipients</a>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 30px;">
+      <h3>Send Test Email</h3>
+      <p>Send today's attendance email manually (for testing purposes).</p>
+      <form method="POST" action="/send-test-email" style="display: inline;">
+        <button type="submit" class="btn btn-primary">Send Test Email</button>
+      </form>
+    </div>
+
+    <% if (typeof emailResult !== 'undefined' && emailResult) { %>
+      <div class="alert <%= emailResult.success ? 'alert-success' : 'alert-error' %>" style="margin-top: 20px;">
+        <%= emailResult.message %>
+      </div>
+    <% } %>
+
+    <div class="card" style="margin-top: 30px;">
+      <h3>Recent Work Records</h3>
+      <% if (recentRecords.length > 0) { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentRecords.forEach(r => { %>
+              <tr>
+                <td><%= r.first_name %> <%= r.last_name %></td>
+                <td><%= new Date(r.work_date).toLocaleDateString() %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <p>No recent records.</p>
+      <% } %>
+    </div>
+  </main>
+</body>
+</html>

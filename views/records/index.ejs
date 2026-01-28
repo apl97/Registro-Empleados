@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Records - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/employees">Employees</a>
+      <a href="/records" class="active">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Work Records</h1>
+    </div>
+
+    <div class="card filter-card">
+      <form method="GET" action="/records" class="filter-form">
+        <div class="form-group">
+          <label for="employee_id">Employee</label>
+          <select id="employee_id" name="employee_id">
+            <option value="">All Employees</option>
+            <% employees.forEach(emp => { %>
+              <option value="<%= emp.id %>" <%= filters.employee_id == emp.id ? 'selected' : '' %>>
+                <%= emp.first_name %> <%= emp.last_name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="start_date">From Date</label>
+          <input type="date" id="start_date" name="start_date" value="<%= filters.start_date || '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="end_date">To Date</label>
+          <input type="date" id="end_date" name="end_date" value="<%= filters.end_date || '' %>">
+        </div>
+
+        <div class="form-group filter-actions">
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <a href="/records" class="btn btn-secondary">Clear</a>
+        </div>
+      </form>
+    </div>
+
+    <% if (records.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Employee Name</th>
+            <th>Date Worked</th>
+            <th>Recorded At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% records.forEach(record => { %>
+            <tr>
+              <td><%= record.first_name %> <%= record.last_name %></td>
+              <td><%= new Date(record.work_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) %></td>
+              <td><%= new Date(record.recorded_at).toLocaleString() %></td>
+              <td>
+                <form method="POST" action="/records/<%= record.id %>/delete" style="display: inline;">
+                  <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this record?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <p class="record-count"><%= records.length %> record(s) found</p>
+    <% } else { %>
+      <div class="empty-state">
+        <p>No work records found.</p>
+        <% if (filters.employee_id || filters.start_date || filters.end_date) { %>
+          <a href="/records" class="btn btn-secondary">Clear filters</a>
+        <% } %>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>
