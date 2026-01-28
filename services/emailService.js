@@ -63,18 +63,18 @@ async function sendDailyEmail() {
       const link = `${appUrl}/track/${token}/${emp.id}`;
       return `
         <tr>
-          <td style="padding: 12px 0;">
+          <td style="padding: 6px 0;">
             <a href="${link}" style="
               display: block;
-              padding: 16px 24px;
+              padding: 10px 16px;
               background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
               color: white;
               text-decoration: none;
-              border-radius: 8px;
-              font-size: 16px;
-              font-weight: 600;
+              border-radius: 6px;
+              font-size: 14px;
+              font-weight: 500;
               text-align: center;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
               transition: all 0.2s;
             ">
               ${emp.first_name} ${emp.last_name}
@@ -92,16 +92,16 @@ async function sendDailyEmail() {
         <title>Work Attendance - ${formattedDate}</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; padding: 40px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; padding: 24px 16px;">
           <tr>
             <td align="center">
               <!-- Main Container -->
-              <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); overflow: hidden; max-width: 100%;">
+              <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="background-color: white; border-radius: 8px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); overflow: hidden; max-width: 100%;">
 
                 <!-- Header with Gradient -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 40px; text-align: center;">
-                    <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 800; letter-spacing: -0.02em;">
+                  <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 16px 24px; text-align: center;">
+                    <h1 style="margin: 0; color: white; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">
                       Employee Tracker
                     </h1>
                   </td>
@@ -109,16 +109,16 @@ async function sendDailyEmail() {
 
                 <!-- Content Section -->
                 <tr>
-                  <td style="padding: 40px;">
-                    <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 24px; font-weight: 700; letter-spacing: -0.02em;">
+                  <td style="padding: 20px 24px;">
+                    <h2 style="margin: 0 0 4px 0; color: #0f172a; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">
                       Who worked today?
                     </h2>
-                    <p style="margin: 0 0 24px 0; color: #64748b; font-size: 16px;">
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 13px;">
                       ${formattedDate}
                     </p>
 
-                    <div style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #4f46e5;">
-                      <p style="margin: 0; color: #334155; font-size: 15px; font-weight: 500;">
+                    <div style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; border-left: 3px solid #4f46e5;">
+                      <p style="margin: 0; color: #334155; font-size: 13px; font-weight: 500;">
                         Click the name of the person who worked today to record their attendance:
                       </p>
                     </div>
@@ -132,11 +132,11 @@ async function sendDailyEmail() {
 
                 <!-- Footer -->
                 <tr>
-                  <td style="padding: 24px 40px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 24px 16px; background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                       <tr>
                         <td style="text-align: center;">
-                          <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.6;">
+                          <p style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 1.5;">
                             <strong style="color: #64748b;">Important:</strong> Each link can only be used once.<br>
                             After clicking, the attendance will be recorded immediately.
                           </p>
@@ -149,10 +149,10 @@ async function sendDailyEmail() {
               </table>
 
               <!-- Email Footer -->
-              <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 100%; margin-top: 24px;">
+              <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width: 100%; margin-top: 12px;">
                 <tr>
-                  <td style="text-align: center; padding: 20px;">
-                    <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                  <td style="text-align: center; padding: 12px;">
+                    <p style="margin: 0; color: #94a3b8; font-size: 11px;">
                       This is an automated email from Employee Tracker
                     </p>
                   </td>
