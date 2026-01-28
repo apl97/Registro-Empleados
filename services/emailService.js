@@ -2,48 +2,69 @@ const sgMail = require('@sendgrid/mail');
 const { v4: uuidv4 } = require('uuid');
 const { pool } = require('../config/database');
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Only set API key if available (prevents startup errors)
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 async function sendDailyEmail() {
   const today = new Date().toISOString().split('T')[0];
 
+  // Validate configuration before proceeding
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error('SendGrid API key not configured');
+    return { success: false, message: 'Email service not configured. Please set SENDGRID_API_KEY.' };
+  }
+
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    console.error('SendGrid from email not configured');
+    return { success: false, message: 'Email service not configured. Please set SENDGRID_FROM_EMAIL.' };
+  }
+
+  const client = await pool.connect();
+
   try {
-    // Check if email already sent today
-    const existingEmail = await pool.query(
-      'SELECT id FROM daily_emails WHERE sent_date = $1',
+    await client.query('BEGIN');
+
+    // Check if email already sent today (with lock to prevent race condition)
+    const existingEmail = await client.query(
+      'SELECT id FROM daily_emails WHERE sent_date = $1 FOR UPDATE',
       [today]
     );
 
     if (existingEmail.rows.length > 0) {
+      await client.query('ROLLBACK');
       console.log('Daily email already sent for today');
       return { success: false, message: 'Email already sent today' };
     }
 
     // Get active employees
-    const employeesResult = await pool.query(
+    const employeesResult = await client.query(
       'SELECT id, first_name, last_name FROM employees WHERE active = true ORDER BY first_name'
     );
 
     if (employeesResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       console.log('No active employees to include in email');
-      return { success: false, message: 'No active employees' };
+      return { success: false, message: 'No active employees. Add employees before sending.' };
     }
 
     // Get active recipients
-    const recipientsResult = await pool.query(
+    const recipientsResult = await client.query(
       'SELECT email FROM email_recipients WHERE active = true'
     );
 
     if (recipientsResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       console.log('No active email recipients');
-      return { success: false, message: 'No active recipients' };
+      return { success: false, message: 'No active recipients. Add email recipients first.' };
     }
 
     // Generate token for today
     const token = uuidv4();
 
-    // Save daily email record
-    await pool.query(
+    // Save daily email record BEFORE sending (will rollback if send fails)
+    await client.query(
       'INSERT INTO daily_emails (sent_date, token) VALUES ($1, $2)',
       [today, token]
     );
@@ -174,12 +195,33 @@ async function sendDailyEmail() {
 
     await sgMail.send(msg);
 
+    // Only commit after successful email send
+    await client.query('COMMIT');
+
     console.log(`Daily email sent successfully to ${recipients.length} recipient(s)`);
     return { success: true, message: `Email sent to ${recipients.length} recipient(s)` };
 
   } catch (error) {
+    // Rollback on any error (including email send failure)
+    await client.query('ROLLBACK');
+
     console.error('Error sending daily email:', error);
-    return { success: false, message: error.message };
+
+    // Provide user-friendly error messages
+    let userMessage = 'Failed to send email. ';
+    if (error.code === 401) {
+      userMessage += 'Invalid API key. Please check SENDGRID_API_KEY configuration.';
+    } else if (error.code === 403) {
+      userMessage += 'Permission denied. Please verify SendGrid account settings.';
+    } else if (error.response && error.response.body && error.response.body.errors) {
+      userMessage += error.response.body.errors.map(e => e.message).join(', ');
+    } else {
+      userMessage += error.message || 'Please try again later.';
+    }
+
+    return { success: false, message: userMessage };
+  } finally {
+    client.release();
   }
 }
 

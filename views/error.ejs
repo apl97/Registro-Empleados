@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="container">
+    <div class="tracking-result error">
+      <div class="icon">!</div>
+      <h1><%= title %></h1>
+      <p><%= message %></p>
+      <% if (typeof backLink !== 'undefined' && backLink) { %>
+        <div style="margin-top: 24px;">
+          <a href="<%= backLink %>" class="btn btn-primary"><%= backText || 'Go Back' %></a>
+        </div>
+      <% } %>
+    </div>
+  </main>
+</body>
+</html>

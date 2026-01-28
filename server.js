@@ -27,6 +27,11 @@ console.log('Environment:', isProduction ? 'production' : 'development');
 console.log('Port:', PORT);
 console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
 
+// Warn about insecure default session secret
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-this-secret') {
+  console.warn('WARNING: Using default session secret. Set SESSION_SECRET environment variable for production!');
+}
+
 // Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -94,15 +99,28 @@ app.get('/dashboard', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.status(500).send('Error loading dashboard');
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'Unable to load dashboard. Please try again.',
+      backLink: '/login',
+      backText: 'Return to Login'
+    });
   }
 });
 
 // Send test email
 app.post('/send-test-email', requireAuth, async (req, res) => {
-  try {
-    const result = await sendTestEmail();
+  let emailResult;
 
+  try {
+    emailResult = await sendTestEmail();
+  } catch (error) {
+    console.error('Send test email error:', error);
+    emailResult = { success: false, message: 'An unexpected error occurred. Please try again.' };
+  }
+
+  // Always try to render the dashboard with results
+  try {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 
@@ -126,10 +144,11 @@ app.post('/send-test-email', requireAuth, async (req, res) => {
         activeRecipients: activeRecipients.rows[0].count
       },
       recentRecords: recentRecords.rows,
-      emailResult: result
+      emailResult
     });
-  } catch (error) {
-    console.error('Send test email error:', error);
+  } catch (dashboardError) {
+    console.error('Error loading dashboard after email send:', dashboardError);
+    // Fallback: redirect with a simple message
     res.redirect('/dashboard');
   }
 });
@@ -137,6 +156,27 @@ app.post('/send-test-email', requireAuth, async (req, res) => {
 // Home redirect
 app.get('/', (req, res) => {
   res.redirect('/dashboard');
+});
+
+// 404 handler - must be after all routes
+app.use((req, res) => {
+  res.status(404).render('error', {
+    title: 'Page Not Found',
+    message: 'The page you are looking for does not exist.',
+    backLink: '/dashboard',
+    backText: 'Go to Dashboard'
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).render('error', {
+    title: 'Server Error',
+    message: 'Something went wrong. Please try again later.',
+    backLink: '/dashboard',
+    backText: 'Go to Dashboard'
+  });
 });
 
 // Initialize and start

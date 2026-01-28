@@ -66,6 +66,32 @@ async function initializeDatabase() {
       )
     `);
 
+    // Create indexes for better query performance
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_work_records_employee_id ON work_records(employee_id)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_work_records_work_date ON work_records(work_date)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_daily_emails_sent_date ON daily_emails(sent_date)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employees_active ON employees(active)
+    `);
+
+    // Add unique constraint to prevent duplicate work records for same employee on same date
+    // This is a safety net in addition to the token-based single-use system
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_work_records_unique_daily
+      ON work_records(employee_id, work_date)
+    `).catch(err => {
+      // Index might already exist or there might be duplicates, log but don't fail
+      if (!err.message.includes('already exists')) {
+        console.warn('Could not create unique index on work_records:', err.message);
+      }
+    });
+
     // Create admin user if not exists
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'changeme';

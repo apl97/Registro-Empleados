@@ -23,6 +23,14 @@
       <h1>Work Records</h1>
     </div>
 
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success"><%= success %></div>
+    <% } %>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
     <div class="card filter-card">
       <form method="GET" action="/records" class="filter-form">
         <div class="form-group">

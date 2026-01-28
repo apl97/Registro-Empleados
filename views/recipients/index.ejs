@@ -35,12 +35,40 @@
         <div class="alert alert-success"><%= success %></div>
       <% } %>
 
-      <form method="POST" action="/recipients" class="inline-form">
+      <form method="POST" action="/recipients" class="inline-form" id="addRecipientForm">
         <div class="form-group">
-          <input type="email" name="email" placeholder="email@example.com" required>
+          <input type="email" name="email" id="emailInput" placeholder="email@example.com" required
+                 maxlength="254" pattern="[^\s@]+@[^\s@]+\.[^\s@]+">
         </div>
-        <button type="submit" class="btn btn-primary">Add Recipient</button>
+        <button type="submit" class="btn btn-primary" id="addRecipientBtn">Add Recipient</button>
       </form>
+
+      <script>
+        const form = document.getElementById('addRecipientForm');
+        const submitBtn = document.getElementById('addRecipientBtn');
+        const emailInput = document.getElementById('emailInput');
+
+        form.addEventListener('submit', function(e) {
+          const email = emailInput.value.trim();
+
+          // Basic email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!email || !emailRegex.test(email)) {
+            e.preventDefault();
+            emailInput.focus();
+            return;
+          }
+
+          if (submitBtn.disabled) {
+            e.preventDefault();
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Adding...';
+          submitBtn.style.opacity = '0.7';
+        });
+      </script>
     </div>
 
     <% if (recipients.length > 0) { %>

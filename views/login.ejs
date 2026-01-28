@@ -16,19 +16,44 @@
         <div class="alert alert-error"><%= error %></div>
       <% } %>
 
-      <form method="POST" action="/login">
+      <form method="POST" action="/login" id="loginForm">
         <div class="form-group">
           <label for="username">Username</label>
-          <input type="text" id="username" name="username" required autofocus>
+          <input type="text" id="username" name="username" required autofocus
+                 autocomplete="username" maxlength="255">
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" required>
+          <input type="password" id="password" name="password" required
+                 autocomplete="current-password">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">Login</button>
+        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Login</button>
       </form>
+
+      <script>
+        // Prevent double-submission and show loading state
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+          const btn = document.getElementById('loginBtn');
+          const username = document.getElementById('username').value.trim();
+          const password = document.getElementById('password').value;
+
+          if (!username || !password) {
+            e.preventDefault();
+            return;
+          }
+
+          if (btn.disabled) {
+            e.preventDefault();
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = 'Logging in...';
+          btn.style.opacity = '0.7';
+        });
+      </script>
     </div>
   </main>
 </body>

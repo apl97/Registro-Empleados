@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Already Recorded</title>
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tracking-footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-tertiary);
+    }
+  </style>
 </head>
 <body>
   <main class="container">
@@ -13,6 +22,10 @@
       <h1>Already Recorded</h1>
       <p>Attendance for <strong><%= new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></strong> was already recorded.</p>
       <p class="recorded-by">Recorded: <strong><%= usedBy %></strong></p>
+      <div class="tracking-footer">
+        <p>Each daily email link can only be used once.</p>
+        <p>If you need to record a different employee, please wait for tomorrow's email or contact an administrator.</p>
+      </div>
     </div>
   </main>
 </body>

@@ -487,6 +487,12 @@ tbody tr:last-child td {
   border-color: var(--color-success);
 }
 
+.alert-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #d97706;
+}
+
 /* ===================================
    Page Headers
    ================================= */

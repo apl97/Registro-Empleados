@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Attendance Recorded</title>
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tracking-footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-tertiary);
+    }
+  </style>
 </head>
 <body>
   <main class="container">
@@ -14,6 +23,10 @@
       <p class="employee-name"><%= employee %></p>
       <p class="date">has been recorded as working on</p>
       <p class="date-value"><%= new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+      <div class="tracking-footer">
+        <p>You can close this page now.</p>
+        <p>This link has been used and cannot be clicked again.</p>
+      </div>
     </div>
   </main>
 </body>

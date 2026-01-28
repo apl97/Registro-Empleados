@@ -24,6 +24,10 @@
       <a href="/employees/new" class="btn btn-primary">Add Employee</a>
     </div>
 
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success"><%= success %></div>
+    <% } %>
+
     <% if (employees.length > 0) { %>
       <table>
         <thead>

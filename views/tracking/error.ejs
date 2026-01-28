@@ -5,13 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Error</title>
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tracking-footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-tertiary);
+    }
+  </style>
 </head>
 <body>
   <main class="container">
     <div class="tracking-result error">
       <div class="icon">&#10007;</div>
-      <h1>Error</h1>
+      <h1>Unable to Record Attendance</h1>
       <p><%= message %></p>
+      <div class="tracking-footer">
+        <p>If this problem persists, please contact an administrator.</p>
+      </div>
     </div>
   </main>
 </body>
