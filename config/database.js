@@ -1,9 +1,15 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
+// Enable SSL for Railway and other cloud databases
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
+const connectionString = process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString,
+  ssl: connectionString && !connectionString.includes('localhost')
+    ? { rejectUnauthorized: false }
+    : false
 });
 
 async function initializeDatabase() {
