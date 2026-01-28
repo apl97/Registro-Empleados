@@ -54,22 +54,6 @@ router.get('/:token/:employeeId', async (req, res) => {
 
     const dailyEmail = emailResult.rows[0];
 
-    // Check if token was already used (inside transaction for consistency)
-    if (dailyEmail.used) {
-      await client.query('ROLLBACK');
-
-      const usedByResult = await pool.query(
-        'SELECT first_name, last_name FROM employees WHERE id = $1',
-        [dailyEmail.used_by_employee_id]
-      );
-      const usedBy = usedByResult.rows[0];
-
-      return res.render('tracking/already-used', {
-        date: dailyEmail.sent_date,
-        usedBy: usedBy ? `${usedBy.first_name} ${usedBy.last_name}` : 'Unknown'
-      });
-    }
-
     // Verify employee exists and is active
     const employeeResult = await client.query(
       'SELECT id, first_name, last_name, active FROM employees WHERE id = $1',
@@ -89,6 +73,21 @@ router.get('/:token/:employeeId', async (req, res) => {
       await client.query('ROLLBACK');
       return res.render('tracking/error', {
         message: 'This employee is no longer active in the system.'
+      });
+    }
+
+    // Check if this employee is already registered for this date
+    const existingRecord = await client.query(
+      'SELECT id FROM work_records WHERE employee_id = $1 AND work_date = $2',
+      [employeeId, dailyEmail.sent_date]
+    );
+
+    if (existingRecord.rows.length > 0) {
+      // Already registered - just show success without inserting duplicate
+      await client.query('ROLLBACK');
+      return res.render('tracking/success', {
+        employee: `${employee.first_name} ${employee.last_name}`,
+        date: dailyEmail.sent_date
       });
     }
 

@@ -26,18 +26,6 @@ async function sendDailyEmail() {
   try {
     await client.query('BEGIN');
 
-    // Check if email already sent today (with lock to prevent race condition)
-    const existingEmail = await client.query(
-      'SELECT id FROM daily_emails WHERE sent_date = $1 FOR UPDATE',
-      [today]
-    );
-
-    if (existingEmail.rows.length > 0) {
-      await client.query('ROLLBACK');
-      console.log('Daily email already sent for today');
-      return { success: false, message: 'Email already sent today' };
-    }
-
     // Get active employees
     const employeesResult = await client.query(
       'SELECT id, first_name, last_name FROM employees WHERE active = true ORDER BY first_name'
