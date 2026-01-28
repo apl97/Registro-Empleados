@@ -210,6 +210,7 @@ body {
 .form-group input[type="password"],
 .form-group input[type="email"],
 .form-group input[type="date"],
+.form-group input[type="number"],
 .form-group select {
   width: 100%;
   padding: var(--space-2) var(--space-3);
@@ -222,6 +223,17 @@ body {
   color: var(--color-text-primary);
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* Hide number input spinners */
+.form-group input[type="number"]::-webkit-outer-spin-button,
+.form-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-group input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .form-group input:hover,
