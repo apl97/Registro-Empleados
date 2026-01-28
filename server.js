@@ -4,6 +4,7 @@ const express = require('express');
 const session = require('express-session');
 const PgSession = require('connect-pg-simple')(session);
 const path = require('path');
+const crypto = require('crypto');
 
 const { pool, initializeDatabase } = require('./config/database');
 const { requireAuth } = require('./middleware/auth');
@@ -27,8 +28,18 @@ console.log('Environment:', isProduction ? 'production' : 'development');
 console.log('Port:', PORT);
 console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
 
-// Warn about insecure default session secret
-if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-this-secret') {
+// SECURITY: Validate session secret in production - refuse to start with weak/missing secret
+if (isProduction) {
+  if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-this-secret') {
+    console.error('FATAL: SESSION_SECRET must be set to a strong random value in production!');
+    console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+    process.exit(1);
+  }
+  if (process.env.SESSION_SECRET.length < 32) {
+    console.error('FATAL: SESSION_SECRET must be at least 32 characters long');
+    process.exit(1);
+  }
+} else if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-this-secret') {
   console.warn('WARNING: Using default session secret. Set SESSION_SECRET environment variable for production!');
 }
 
@@ -36,6 +47,37 @@ if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-this-s
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('trust proxy', 1); // Trust Railway's proxy
+
+// SECURITY: Add security headers
+app.use((req, res, next) => {
+  // Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+  // Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // XSS protection (legacy but still useful)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  // Referrer policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Content Security Policy
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; form-action 'self'; frame-ancestors 'none';");
+  // HSTS in production
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// SECURITY: Enforce HTTPS in production
+if (isProduction) {
+  app.use((req, res, next) => {
+    // Railway and other proxies set x-forwarded-proto
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -44,6 +86,11 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// SECURITY: Generate CSRF tokens
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 // Session configuration
 app.use(session({
@@ -55,12 +102,53 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'change-this-secret',
   resave: false,
   saveUninitialized: false,
+  name: 'sid', // Use a generic name instead of default 'connect.sid'
   cookie: {
     secure: isProduction, // Use secure cookies in production
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    sameSite: 'strict', // SECURITY: Prevent CSRF via cookies
+    maxAge: 24 * 60 * 60 * 1000 // SECURITY: Reduced to 1 day from 7 days
   }
 }));
+
+// SECURITY: CSRF protection middleware for authenticated routes
+app.use((req, res, next) => {
+  // Initialize CSRF token if session exists
+  if (req.session && !req.session.csrfToken) {
+    req.session.csrfToken = generateCsrfToken();
+  }
+  // Make token available to views
+  res.locals.csrfToken = req.session ? req.session.csrfToken : '';
+  next();
+});
+
+// SECURITY: CSRF validation for POST requests on protected routes
+function validateCsrf(req, res, next) {
+  // Skip CSRF for public tracking endpoint
+  if (req.path.startsWith('/track/')) {
+    return next();
+  }
+
+  const token = req.body._csrf || req.headers['x-csrf-token'];
+  if (!token || token !== req.session.csrfToken) {
+    console.warn('CSRF validation failed for:', req.path, 'IP:', req.ip);
+    return res.status(403).render('error', {
+      title: 'Forbidden',
+      message: 'Invalid or missing security token. Please try again.',
+      backLink: req.headers.referer || '/dashboard',
+      backText: 'Go Back'
+    });
+  }
+  next();
+}
+
+// Apply CSRF validation to all POST requests (except public routes)
+app.use((req, res, next) => {
+  if (req.method === 'POST' && !req.path.startsWith('/track/')) {
+    return validateCsrf(req, res, next);
+  }
+  next();
+});
 
 // Routes
 app.use('/', authRoutes);

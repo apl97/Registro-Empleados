@@ -1,23 +1,132 @@
 const express = require('express');
+const crypto = require('crypto');
 const { pool } = require('../config/database');
 
 const router = express.Router();
 
-// Validate UUID format (basic check for token security)
+// SECURITY: Rate limiting for public endpoint
+const trackingAttempts = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per minute per IP
+const LOCKOUT_THRESHOLD = 100; // After 100 requests, lockout for longer
+const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minute lockout
+
+function checkTrackingRateLimit(ip) {
+  const now = Date.now();
+  const record = trackingAttempts.get(ip);
+
+  if (!record) {
+    trackingAttempts.set(ip, { count: 1, windowStart: now, locked: false });
+    return { allowed: true };
+  }
+
+  // Check if currently locked out
+  if (record.locked && now - record.windowStart < LOCKOUT_TIME) {
+    return { allowed: false, lockedOut: true };
+  }
+
+  // Reset window if expired
+  if (now - record.windowStart > RATE_LIMIT_WINDOW) {
+    record.count = 1;
+    record.windowStart = now;
+    record.locked = false;
+    return { allowed: true };
+  }
+
+  record.count++;
+
+  // Check for lockout threshold
+  if (record.count > LOCKOUT_THRESHOLD) {
+    record.locked = true;
+    record.windowStart = now;
+    return { allowed: false, lockedOut: true };
+  }
+
+  // Check rate limit
+  if (record.count > MAX_REQUESTS_PER_WINDOW) {
+    return { allowed: false, lockedOut: false };
+  }
+
+  return { allowed: true };
+}
+
+// SECURITY: Validate UUID format (basic check for token security)
 function isValidUUID(str) {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(str);
 }
 
-// Validate that employeeId is a positive integer
-function isValidEmployeeId(id) {
-  const num = parseInt(id, 10);
-  return !isNaN(num) && num > 0 && num.toString() === id;
+// SECURITY: Validate employee reference token (opaque identifier)
+// Now expects a hashed/signed reference instead of plain ID
+function isValidEmployeeRef(ref) {
+  // Accept either old-style numeric IDs (for backwards compatibility) or new signed tokens
+  // New format: base64url encoded, 32+ characters
+  if (/^[A-Za-z0-9_-]{32,}$/.test(ref)) {
+    return true;
+  }
+  // Legacy: numeric ID (will be deprecated)
+  const num = parseInt(ref, 10);
+  return !isNaN(num) && num > 0 && num.toString() === ref;
+}
+
+// SECURITY: Decode employee reference to get actual ID
+// Returns null if invalid or tampered
+function decodeEmployeeRef(ref, token) {
+  // Try new signed format first
+  if (/^[A-Za-z0-9_-]{32,}$/.test(ref)) {
+    try {
+      // The ref is: base64url(employeeId:hmac(token+employeeId))
+      const decoded = Buffer.from(ref.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+      const [idPart, signaturePart] = decoded.split(':');
+      const employeeId = parseInt(idPart, 10);
+
+      if (isNaN(employeeId) || employeeId <= 0) {
+        return null;
+      }
+
+      // Verify signature
+      const secret = process.env.SESSION_SECRET || 'change-this-secret';
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(`${token}:${employeeId}`)
+        .digest('hex')
+        .substring(0, 16);
+
+      if (signaturePart === expectedSignature) {
+        return employeeId;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Legacy numeric ID (backwards compatible)
+  const num = parseInt(ref, 10);
+  if (!isNaN(num) && num > 0 && num.toString() === ref) {
+    return num;
+  }
+
+  return null;
 }
 
 // Handle email link clicks (public route)
-router.get('/:token/:employeeId', async (req, res) => {
-  const { token, employeeId } = req.params;
+router.get('/:token/:employeeRef', async (req, res) => {
+  const { token, employeeRef } = req.params;
+  const clientIp = req.ip || req.connection.remoteAddress;
+
+  // SECURITY: Rate limit check
+  const rateCheck = checkTrackingRateLimit(clientIp);
+  if (!rateCheck.allowed) {
+    if (rateCheck.lockedOut) {
+      return res.status(429).render('tracking/error', {
+        message: 'Too many requests. Please try again later.'
+      });
+    }
+    return res.status(429).render('tracking/error', {
+      message: 'Please wait a moment before trying again.'
+    });
+  }
 
   // Validate input parameters to prevent injection and bad requests
   if (!isValidUUID(token)) {
@@ -26,9 +135,17 @@ router.get('/:token/:employeeId', async (req, res) => {
     });
   }
 
-  if (!isValidEmployeeId(employeeId)) {
+  if (!isValidEmployeeRef(employeeRef)) {
     return res.render('tracking/error', {
       message: 'Invalid employee reference. Please use the link from your email.'
+    });
+  }
+
+  // SECURITY: Decode and verify employee reference
+  const employeeId = decodeEmployeeRef(employeeRef, token);
+  if (employeeId === null) {
+    return res.render('tracking/error', {
+      message: 'Invalid or expired link. Please use the link from your email.'
     });
   }
 

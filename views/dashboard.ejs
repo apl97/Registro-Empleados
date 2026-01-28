@@ -56,6 +56,7 @@
         </p>
       <% } else { %>
         <form method="POST" action="/send-test-email" style="display: inline;" id="testEmailForm">
+          <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
           <button type="submit" class="btn btn-primary" id="sendTestEmailBtn">Send Test Email</button>
         </form>
       <% } %>

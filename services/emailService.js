@@ -1,10 +1,40 @@
 const sgMail = require('@sendgrid/mail');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { pool } = require('../config/database');
 
 // Only set API key if available (prevents startup errors)
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
+
+// SECURITY: Generate signed employee reference to prevent ID enumeration
+function generateEmployeeRef(employeeId, token) {
+  const secret = process.env.SESSION_SECRET || 'change-this-secret';
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${token}:${employeeId}`)
+    .digest('hex')
+    .substring(0, 16);
+
+  // Format: base64url(employeeId:signature)
+  const payload = `${employeeId}:${signature}`;
+  return Buffer.from(payload)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// SECURITY: HTML-encode strings to prevent XSS in emails
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function sendDailyEmail() {
@@ -70,7 +100,11 @@ async function sendDailyEmail() {
     });
 
     const employeeLinks = employees.map(emp => {
-      const link = `${appUrl}/track/${token}/${emp.id}`;
+      // SECURITY: Use signed employee reference instead of plain ID
+      const employeeRef = generateEmployeeRef(emp.id, token);
+      const link = `${appUrl}/track/${token}/${employeeRef}`;
+      // SECURITY: HTML-encode employee names to prevent XSS
+      const safeName = escapeHtml(`${emp.first_name} ${emp.last_name}`);
       return `
         <tr>
           <td style="padding: 4px 0;">
@@ -85,7 +119,7 @@ async function sendDailyEmail() {
               font-weight: 500;
               text-align: center;
             ">
-              ${emp.first_name} ${emp.last_name}
+              ${safeName}
             </a>
           </td>
         </tr>`;
@@ -168,7 +202,10 @@ async function sendDailyEmail() {
     `;
 
     const textContent = `Who worked today?\n\n${formattedDate}\n\nClick the link for the person who worked:\n\n` +
-      employees.map(emp => `${emp.first_name} ${emp.last_name}: ${appUrl}/track/${token}/${emp.id}`).join('\n\n') +
+      employees.map(emp => {
+        const employeeRef = generateEmployeeRef(emp.id, token);
+        return `${emp.first_name} ${emp.last_name}: ${appUrl}/track/${token}/${employeeRef}`;
+      }).join('\n\n') +
       '\n\nNote: This link can only be used once.';
 
     // Send email to all recipients

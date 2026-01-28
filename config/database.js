@@ -1,15 +1,23 @@
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Enable SSL for Railway and other cloud databases
 const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
 const connectionString = process.env.DATABASE_URL;
 
+// SECURITY: SSL configuration
+// In production, we should verify certificates. Set DATABASE_SSL_REJECT_UNAUTHORIZED=false
+// only if your database provider doesn't support proper SSL certificates.
+const sslConfig = connectionString && !connectionString.includes('localhost')
+  ? {
+      rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'
+    }
+  : false;
+
 const pool = new Pool({
   connectionString,
-  ssl: connectionString && !connectionString.includes('localhost')
-    ? { rejectUnauthorized: false }
-    : false
+  ssl: sslConfig
 });
 
 async function initializeDatabase() {
@@ -97,22 +105,55 @@ async function initializeDatabase() {
       DROP INDEX IF EXISTS idx_work_records_unique_daily
     `).catch(() => {});
 
-    // Create admin user if not exists
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'changeme';
+    // SECURITY: Create admin user only if credentials are properly configured
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-    const existingAdmin = await client.query(
-      'SELECT id FROM users WHERE username = $1',
-      [adminUsername]
-    );
+    // Validate admin credentials before creating user
+    if (adminUsername && adminPassword) {
+      // SECURITY: Enforce minimum password requirements
+      const MIN_PASSWORD_LENGTH = 12;
+      const passwordErrors = [];
 
-    if (existingAdmin.rows.length === 0) {
-      const passwordHash = await bcrypt.hash(adminPassword, 10);
-      await client.query(
-        'INSERT INTO users (username, password_hash) VALUES ($1, $2)',
-        [adminUsername, passwordHash]
+      if (adminPassword.length < MIN_PASSWORD_LENGTH) {
+        passwordErrors.push(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      }
+      if (adminPassword === 'changeme' || adminPassword === 'password' || adminPassword === 'admin') {
+        passwordErrors.push('Password cannot be a common default value');
+      }
+      if (adminPassword.toLowerCase() === adminUsername.toLowerCase()) {
+        passwordErrors.push('Password cannot be the same as username');
+      }
+
+      if (passwordErrors.length > 0 && isProduction) {
+        console.error('FATAL: Admin password does not meet security requirements:');
+        passwordErrors.forEach(err => console.error(`  - ${err}`));
+        throw new Error('Insecure admin password configuration');
+      } else if (passwordErrors.length > 0) {
+        console.warn('WARNING: Admin password is weak. This is only allowed in development mode.');
+        passwordErrors.forEach(err => console.warn(`  - ${err}`));
+      }
+
+      const existingAdmin = await client.query(
+        'SELECT id FROM users WHERE username = $1',
+        [adminUsername]
       );
-      console.log(`Admin user '${adminUsername}' created`);
+
+      if (existingAdmin.rows.length === 0) {
+        // SECURITY: Use higher bcrypt cost factor (12 instead of 10)
+        const passwordHash = await bcrypt.hash(adminPassword, 12);
+        await client.query(
+          'INSERT INTO users (username, password_hash) VALUES ($1, $2)',
+          [adminUsername, passwordHash]
+        );
+        // SECURITY: Don't log username to avoid credential exposure in logs
+        console.log('Admin user created successfully');
+      }
+    } else if (isProduction) {
+      // SECURITY: In production, require explicit admin credentials
+      console.warn('WARNING: No admin credentials configured. Set ADMIN_USERNAME and ADMIN_PASSWORD environment variables.');
+    } else {
+      console.log('Note: No admin credentials configured. Set ADMIN_USERNAME and ADMIN_PASSWORD to create an admin user.');
     }
 
     console.log('Database initialized successfully');

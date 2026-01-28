@@ -52,6 +52,7 @@
                 <a href="/employees/<%= emp.id %>/edit" class="btn btn-small btn-secondary">Edit</a>
                 <% if (emp.active) { %>
                   <form method="POST" action="/employees/<%= emp.id %>/deactivate" style="display: inline;">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                     <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Deactivate this employee?')">Deactivate</button>
                   </form>
                 <% } %>

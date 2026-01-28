@@ -36,6 +36,7 @@
       <% } %>
 
       <form method="POST" action="/recipients" class="inline-form" id="addRecipientForm">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <div class="form-group">
           <input type="email" name="email" id="emailInput" placeholder="email@example.com" required
                  maxlength="254" pattern="[^\s@]+@[^\s@]+\.[^\s@]+">
@@ -91,11 +92,13 @@
               </td>
               <td>
                 <form method="POST" action="/recipients/<%= recipient.id %>/toggle" style="display: inline;">
+                  <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                   <button type="submit" class="btn btn-small btn-secondary">
                     <%= recipient.active ? 'Deactivate' : 'Activate' %>
                   </button>
                 </form>
                 <form method="POST" action="/recipients/<%= recipient.id %>/delete" style="display: inline;">
+                  <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                   <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this recipient?')">Delete</button>
                 </form>
               </td>
