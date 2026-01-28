@@ -54,9 +54,9 @@ router.get('/:token/:employeeId', async (req, res) => {
 
     const dailyEmail = emailResult.rows[0];
 
-    // Verify employee exists and is active
+    // Verify employee exists and is active, get their current wage
     const employeeResult = await client.query(
-      'SELECT id, first_name, last_name, active FROM employees WHERE id = $1',
+      'SELECT id, first_name, last_name, daily_wage, active FROM employees WHERE id = $1',
       [employeeId]
     );
 
@@ -91,10 +91,10 @@ router.get('/:token/:employeeId', async (req, res) => {
       });
     }
 
-    // Insert work record
+    // Insert work record with current wage
     await client.query(
-      'INSERT INTO work_records (employee_id, work_date, email_token) VALUES ($1, $2, $3)',
-      [employeeId, dailyEmail.sent_date, token]
+      'INSERT INTO work_records (employee_id, work_date, wage_amount, email_token) VALUES ($1, $2, $3, $4)',
+      [employeeId, dailyEmail.sent_date, employee.daily_wage || 0, token]
     );
 
     // Mark token as used

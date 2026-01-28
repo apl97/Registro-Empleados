@@ -30,6 +30,31 @@ function validateName(name, fieldName) {
   return null;
 }
 
+// Validate wage field
+function validateWage(wage) {
+  if (wage === undefined || wage === null || wage === '') {
+    return null; // Optional, defaults to 0
+  }
+  const num = parseFloat(wage);
+  if (isNaN(num) || num < 0) {
+    return 'Daily wage must be a positive number';
+  }
+  if (num > 9999999999.99) {
+    return 'Daily wage exceeds maximum allowed value';
+  }
+  return null;
+}
+
+// Format currency as COP
+function formatCOP(amount) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount || 0);
+}
+
 // List all employees
 router.get('/', async (req, res) => {
   try {
@@ -57,14 +82,14 @@ router.get('/new', (req, res) => {
 
 // Create employee
 router.post('/', async (req, res) => {
-  const { first_name, last_name } = req.body;
+  const { first_name, last_name, daily_wage } = req.body;
 
   // Validate inputs
   const firstNameError = validateName(first_name, 'First name');
   if (firstNameError) {
     return res.render('employees/new', {
       error: firstNameError,
-      formData: { first_name, last_name }
+      formData: { first_name, last_name, daily_wage }
     });
   }
 
@@ -72,21 +97,29 @@ router.post('/', async (req, res) => {
   if (lastNameError) {
     return res.render('employees/new', {
       error: lastNameError,
-      formData: { first_name, last_name }
+      formData: { first_name, last_name, daily_wage }
+    });
+  }
+
+  const wageError = validateWage(daily_wage);
+  if (wageError) {
+    return res.render('employees/new', {
+      error: wageError,
+      formData: { first_name, last_name, daily_wage }
     });
   }
 
   try {
     await pool.query(
-      'INSERT INTO employees (first_name, last_name) VALUES ($1, $2)',
-      [first_name.trim(), last_name.trim()]
+      'INSERT INTO employees (first_name, last_name, daily_wage) VALUES ($1, $2, $3)',
+      [first_name.trim(), last_name.trim(), parseFloat(daily_wage) || 0]
     );
     res.redirect('/employees?success=' + encodeURIComponent('Employee added successfully'));
   } catch (error) {
     console.error('Error creating employee:', error);
     res.render('employees/new', {
       error: 'Unable to create employee. Please try again.',
-      formData: { first_name, last_name }
+      formData: { first_name, last_name, daily_wage }
     });
   }
 });
@@ -128,7 +161,7 @@ router.get('/:id/edit', async (req, res) => {
 
 // Update employee
 router.post('/:id', async (req, res) => {
-  const { first_name, last_name, active } = req.body;
+  const { first_name, last_name, daily_wage, active } = req.body;
   const id = req.params.id;
 
   if (!isValidId(id)) {
@@ -169,7 +202,7 @@ router.post('/:id', async (req, res) => {
     return res.render('employees/edit', {
       employee: currentEmployee,
       error: firstNameError,
-      formData: { first_name, last_name, active: active === 'on' }
+      formData: { first_name, last_name, daily_wage, active: active === 'on' }
     });
   }
 
@@ -178,14 +211,23 @@ router.post('/:id', async (req, res) => {
     return res.render('employees/edit', {
       employee: currentEmployee,
       error: lastNameError,
-      formData: { first_name, last_name, active: active === 'on' }
+      formData: { first_name, last_name, daily_wage, active: active === 'on' }
+    });
+  }
+
+  const wageError = validateWage(daily_wage);
+  if (wageError) {
+    return res.render('employees/edit', {
+      employee: currentEmployee,
+      error: wageError,
+      formData: { first_name, last_name, daily_wage, active: active === 'on' }
     });
   }
 
   try {
     await pool.query(
-      'UPDATE employees SET first_name = $1, last_name = $2, active = $3 WHERE id = $4',
-      [first_name.trim(), last_name.trim(), active === 'on', id]
+      'UPDATE employees SET first_name = $1, last_name = $2, daily_wage = $3, active = $4 WHERE id = $5',
+      [first_name.trim(), last_name.trim(), parseFloat(daily_wage) || 0, active === 'on', id]
     );
     res.redirect('/employees?success=' + encodeURIComponent('Employee updated successfully'));
   } catch (error) {
@@ -193,7 +235,7 @@ router.post('/:id', async (req, res) => {
     res.render('employees/edit', {
       employee: currentEmployee,
       error: 'Unable to update employee. Please try again.',
-      formData: { first_name, last_name, active: active === 'on' }
+      formData: { first_name, last_name, daily_wage, active: active === 'on' }
     });
   }
 });

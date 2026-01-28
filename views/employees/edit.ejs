@@ -44,6 +44,13 @@
         </div>
 
         <div class="form-group">
+          <label for="daily_wage">Daily Wage (COP)</label>
+          <input type="number" id="daily_wage" name="daily_wage"
+                 min="0" step="100" placeholder="0"
+                 value="<%= (typeof formData !== 'undefined' && formData && formData.daily_wage !== undefined) ? formData.daily_wage : (employee.daily_wage || 0) %>">
+        </div>
+
+        <div class="form-group">
           <label class="checkbox-label">
             <% const isActive = (typeof formData !== 'undefined' && formData) ? formData.active : employee.active; %>
             <input type="checkbox" name="active" <%= isActive ? 'checked' : '' %>>

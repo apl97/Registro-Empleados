@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Work Record - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/employees">Employees</a>
+      <a href="/records" class="active">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Add Work Record</h1>
+    </div>
+
+    <div class="card form-card">
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form method="POST" action="/records">
+        <div class="form-group">
+          <label for="employee_id">Employee</label>
+          <select id="employee_id" name="employee_id" required>
+            <option value="">Select an employee...</option>
+            <% employees.forEach(emp => { %>
+              <option value="<%= emp.id %>"
+                      data-wage="<%= emp.daily_wage || 0 %>"
+                      <%= (formData && formData.employee_id == emp.id) ? 'selected' : '' %>>
+                <%= emp.first_name %> <%= emp.last_name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="work_date">Work Date</label>
+          <input type="date" id="work_date" name="work_date" required
+                 value="<%= (formData && formData.work_date) ? formData.work_date : '' %>">
+        </div>
+
+        <div class="form-group">
+          <label for="wage_amount">Wage Amount (COP)</label>
+          <input type="number" id="wage_amount" name="wage_amount"
+                 min="0" step="100" placeholder="Employee's daily wage"
+                 value="<%= (formData && formData.wage_amount) ? formData.wage_amount : '' %>">
+          <small style="color: var(--color-text-tertiary); font-size: 12px;">
+            Leave empty to use employee's current daily wage
+          </small>
+        </div>
+
+        <div class="form-actions">
+          <a href="/records" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Add Record</button>
+        </div>
+      </form>
+
+      <script>
+        const employeeSelect = document.getElementById('employee_id');
+        const wageInput = document.getElementById('wage_amount');
+
+        employeeSelect.addEventListener('change', function() {
+          const selected = this.options[this.selectedIndex];
+          const wage = selected.getAttribute('data-wage');
+          if (wage && !wageInput.value) {
+            wageInput.placeholder = '$' + parseInt(wage).toLocaleString('es-CO') + ' COP (default)';
+          }
+        });
+
+        // Trigger on page load if employee is pre-selected
+        if (employeeSelect.value) {
+          employeeSelect.dispatchEvent(new Event('change'));
+        }
+
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', function(e) {
+          if (!employeeSelect.value || !document.getElementById('work_date').value) {
+            e.preventDefault();
+            return;
+          }
+
+          if (submitBtn.disabled) {
+            e.preventDefault();
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Adding...';
+        });
+      </script>
+    </div>
+  </main>
+</body>
+</html>

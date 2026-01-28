@@ -21,6 +21,7 @@
   <main class="container">
     <div class="page-header">
       <h1>Work Records</h1>
+      <a href="/records/new" class="btn btn-primary">Add Record</a>
     </div>
 
     <% if (typeof success !== 'undefined' && success) { %>
@@ -63,12 +64,16 @@
     </div>
 
     <% if (records.length > 0) { %>
+      <%
+        let totalWage = 0;
+        records.forEach(r => { totalWage += parseFloat(r.wage_amount) || 0; });
+      %>
       <table>
         <thead>
           <tr>
-            <th>Employee Name</th>
+            <th>Employee</th>
             <th>Date Worked</th>
-            <th>Recorded At</th>
+            <th>Wage</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -77,8 +82,9 @@
             <tr>
               <td><%= record.first_name %> <%= record.last_name %></td>
               <td><%= new Date(record.work_date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) %></td>
-              <td><%= new Date(record.recorded_at).toLocaleString() %></td>
+              <td>$<%= formatCOP(record.wage_amount) %> COP</td>
               <td>
+                <a href="/records/<%= record.id %>/edit" class="btn btn-small btn-secondary">Edit</a>
                 <form method="POST" action="/records/<%= record.id %>/delete" style="display: inline;">
                   <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this record?')">Delete</button>
                 </form>
@@ -86,6 +92,13 @@
             </tr>
           <% }) %>
         </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="text-align: right; font-weight: 600;">Total:</td>
+            <td style="font-weight: 600;">$<%= formatCOP(totalWage) %> COP</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
       <p class="record-count"><%= records.length %> record(s) found</p>
     <% } else { %>
@@ -93,6 +106,8 @@
         <p>No work records found.</p>
         <% if (filters.employee_id || filters.start_date || filters.end_date) { %>
           <a href="/records" class="btn btn-secondary">Clear filters</a>
+        <% } else { %>
+          <a href="/records/new" class="btn btn-primary">Add your first record</a>
         <% } %>
       </div>
     <% } %>

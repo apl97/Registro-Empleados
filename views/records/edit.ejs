@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Work Record - Employee Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Employee Tracker</div>
+    <div class="nav-links">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/employees">Employees</a>
+      <a href="/records" class="active">Records</a>
+      <a href="/recipients">Email Recipients</a>
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Edit Work Record</h1>
+    </div>
+
+    <div class="card form-card">
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form method="POST" action="/records/<%= record.id %>">
+        <div class="form-group">
+          <label for="employee_id">Employee</label>
+          <select id="employee_id" name="employee_id" required>
+            <option value="">Select an employee...</option>
+            <% employees.forEach(emp => { %>
+              <%
+                const selectedId = (formData && formData.employee_id) ? formData.employee_id : record.employee_id;
+              %>
+              <option value="<%= emp.id %>"
+                      data-wage="<%= emp.daily_wage || 0 %>"
+                      <%= selectedId == emp.id ? 'selected' : '' %>>
+                <%= emp.first_name %> <%= emp.last_name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="work_date">Work Date</label>
+          <%
+            const dateValue = (formData && formData.work_date) ? formData.work_date : record.work_date;
+            const formattedDate = new Date(dateValue).toISOString().split('T')[0];
+          %>
+          <input type="date" id="work_date" name="work_date" required
+                 value="<%= formattedDate %>">
+        </div>
+
+        <div class="form-group">
+          <label for="wage_amount">Wage Amount (COP)</label>
+          <%
+            const wageValue = (formData && formData.wage_amount !== undefined) ? formData.wage_amount : record.wage_amount;
+          %>
+          <input type="number" id="wage_amount" name="wage_amount"
+                 min="0" step="100"
+                 value="<%= wageValue || 0 %>">
+        </div>
+
+        <div class="form-actions">
+          <a href="/records" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Save Changes</button>
+        </div>
+      </form>
+
+      <script>
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', function(e) {
+          const employeeSelect = document.getElementById('employee_id');
+          if (!employeeSelect.value || !document.getElementById('work_date').value) {
+            e.preventDefault();
+            return;
+          }
+
+          if (submitBtn.disabled) {
+            e.preventDefault();
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Saving...';
+        });
+      </script>
+    </div>
+  </main>
+</body>
+</html>

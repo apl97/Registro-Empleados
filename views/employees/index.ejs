@@ -33,6 +33,7 @@
         <thead>
           <tr>
             <th>Name</th>
+            <th>Daily Wage</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -41,6 +42,7 @@
           <% employees.forEach(emp => { %>
             <tr class="<%= !emp.active ? 'inactive-row' : '' %>">
               <td><%= emp.first_name %> <%= emp.last_name %></td>
+              <td>$<%= new Intl.NumberFormat('es-CO').format(emp.daily_wage || 0) %> COP</td>
               <td>
                 <span class="badge <%= emp.active ? 'badge-active' : 'badge-inactive' %>">
                   <%= emp.active ? 'Active' : 'Inactive' %>
