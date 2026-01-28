@@ -57,7 +57,8 @@ async function sendDailyEmail() {
       [today, token]
     );
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    // Remove trailing slash if present to avoid double slashes in URLs
+    const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
     // Build email content
     const employees = employeesResult.rows;
