@@ -19,12 +19,26 @@ const recipientRoutes = require('./routes/recipients');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Detect production environment (Railway sets RAILWAY_ENVIRONMENT)
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT;
+
+console.log('Starting server...');
+console.log('Environment:', isProduction ? 'production' : 'development');
+console.log('Port:', PORT);
+console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
+
 // Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('trust proxy', 1); // Trust Railway's proxy
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Health check endpoint (before session middleware)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Session configuration
 app.use(session({
@@ -37,7 +51,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction, // Use secure cookies in production
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   }
@@ -55,7 +69,6 @@ app.get('/dashboard', requireAuth, async (req, res) => {
   try {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const today = now.toISOString().split('T')[0];
 
     const [activeEmployees, recordsThisMonth, activeRecipients, recentRecords] = await Promise.all([
       pool.query('SELECT COUNT(*) as count FROM employees WHERE active = true'),
@@ -128,16 +141,20 @@ app.get('/', (req, res) => {
 
 // Initialize and start
 async function start() {
+  // Start server first so Railway can see it's responding
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+
+  // Then initialize database
   try {
     await initializeDatabase();
+    console.log('Database initialized');
     startScheduler();
-
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
-    });
   } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('Database initialization failed:', error.message);
+    console.error('Full error:', error);
+    // Don't exit - keep server running so we can see logs
   }
 }
 
